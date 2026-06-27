@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Employee Reports Chatbot</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #dbeafe; /* light blue */
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .chat-container {
+      width: 90%;
+      max-width: 800px;
+      height: 80vh;
+      background: #1f1f1f; /* black chatbox */
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: white;
+    }
+
+    .chat-header {
+      background: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .chat-header h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .chat-header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: #1f1f1f;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .message-content {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .message.user .message-content {
+      background: #4f46e5;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.bot .message-content {
+      background: #2e2e2e;
+      color: #f1f1f1;
+      border: 1px solid #444;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-input-container {
+      padding: 20px;
+      background: #1f1f1f;
+      border-top: 1px solid #333;
+    }
+
+    .chat-input-form {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #444;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+      background: #2c2c2c;
+      color: white;
+    }
+
+    .chat-input:focus {
+      border-color: #4f46e5;
+    }
+
+    .send-button {
+      padding: 12px 24px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .send-button:hover {
+      background: #4338ca;
+    }
+
+    .send-button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .examples {
+      margin-top: 15px;
+      padding: 15px;
+      background: #2a2a2a;
+      border-radius: 10px;
+      border-left: 4px solid #4f46e5;
+    }
+
+    .examples h3 {
+      color: #93c5fd;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .examples ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .examples li {
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      background: #333;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: white;
+    }
+
+    .examples li:hover {
+      background: #4b5563;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 10px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h1>Employee Reports Chatbot</h1>
+      <p>Ask about login/logout times or attendance</p>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot">
+        <div class="message-content">
+          Welcome! I can help you query employee attendance data. Try asking about specific employees or attendance patterns.
+        </div>
+      </div>
+
+      <div class="examples">
+        <h3>Example Queries:</h3>
+        <ul>
+          <li onclick="sendExample(this)">Give me the login and logout time of Employee X on date 20-Apr-2025</li>
+          <li onclick="sendExample(this)">On April give me all employee whose logout is earlier than 5.00 PM</li>
+          <li onclick="sendExample(this)">List all employees</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="loading" id="loading">
+      <p>Processing your query...</p>
+    </div>
+
+    <div class="chat-input-container">
+      <form class="chat-input-form" id="chatForm">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Ask about employee attendance..." required>
+        <button type="submit" class="send-button" id="sendButton">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const sendButton = document.getElementById('sendButton');
+    const loading = document.getElementById('loading');
+
+    function addMessage(content, isUser = false) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      contentDiv.innerHTML = content;
+
+      messageDiv.appendChild(contentDiv);
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendExample(element) {
+      const query = element.textContent;
+      chatInput.value = query;
+      sendMessage(query);
+    }
+
+    async function sendMessage(query = null) {
+      const message = query || chatInput.value.trim();
+      if (!message) return;
+
+      addMessage(message, true);
+      chatInput.value = '';
+      loading.style.display = 'block';
+      sendButton.disabled = true;
+
+      try {
+        const response = await fetch('http://localhost:5678/webhook-test/chatbot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message_id: window.btoa(new Date()),
+            query: message
+          })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+          addMessage(`Error: ${data.error}`);
+        } else {
+          addMessage(data.output || JSON.stringify(data));
+        }
+      } catch (error) {
+        addMessage(`Error: ${error.message}`);
+      } finally {
+        loading.style.display = 'none';
+        sendButton.disabled = false;
+        chatInput.focus();
+      }
+    }
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendMessage();
+    });
+
+    chatInput.focus();
+  </script>
+</body>
+</html>
